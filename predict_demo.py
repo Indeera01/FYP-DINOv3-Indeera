@@ -123,11 +123,13 @@ def main():
             output_frame = os.path.join(output_dir, f"frame_{frame_idx:04d}.{image_format}")
             
             # Build FFmpeg command for single frame extraction with preprocessing
+            # Use force_original_aspect_ratio=increase to handle both portrait and landscape
+            # This scales so the smaller dimension becomes 224, then crops to 224x224 (center)
             ffmpeg_cmd = [
                 "ffmpeg", "-y", "-loglevel", "error",
                 "-ss", str(timestamp),
                 "-i", str(video_path),
-                "-vf", f"fps={frame_rate},scale={resolution}:-1:flags={resize_method},pad={resolution}:{resolution}:(ow-iw)/2:(oh-ih)/2",
+                "-vf", f"fps={frame_rate},scale={resolution}:{resolution}:force_original_aspect_ratio=increase:flags={resize_method},crop={resolution}:{resolution}",
                 "-vframes", "1",
                 "-pix_fmt", "rgb24",
                 output_frame
