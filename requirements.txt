@@ -1,0 +1,18 @@
+# Deep Learning Frameworks
+torch>=2.0.0
+transformers>=4.30.0
+
+# Computer Vision and Image Processing
+Pillow>=9.0.0
+
+# Scientific Computing
+numpy>=1.24.0
+
+# Machine Learning Utilities
+scikit-learn>=1.2.0
+
+# Progress Bars
+tqdm>=4.65.0
+
+# Data Visualization
+matplotlib>=3.7.0
