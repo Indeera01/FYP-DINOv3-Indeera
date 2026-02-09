@@ -4,6 +4,7 @@ import subprocess
 import numpy as np
 import torch
 import torch.nn as nn
+import matplotlib.pyplot as plt
 from pathlib import Path
 import tempfile
 from tqdm import tqdm
@@ -14,13 +15,16 @@ from tqdm import tqdm
 DEMO_FOLDER = "DEMO"
 PREPROCESSED_FOLDER = "DEMO/preprocessed_frames-demo"
 EMBEDDINGS_FOLDER = "DEMO/embeddings-demo"
-MODEL_PATH = "temporal_cnn_dino.pth"
-NUM_FRAMES = 32
+MODEL_PATH = "temporal_cnn_dino_125.pth"
+NUM_FRAMES = 125
 EMB_DIM = 384
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
+# Occlusion settings
+OCCLUSION_WINDOW = 5  # odd number recommended
+
 # -------------------------------
-# Temporal CNN Model (same as training)
+# Temporal CNN Model
 # -------------------------------
 class TemporalCNN(nn.Module):
     def __init__(self, emb_dim=EMB_DIM, num_classes=2):
@@ -41,11 +45,77 @@ class TemporalCNN(nn.Module):
         self.classifier = nn.Linear(128, num_classes)
 
     def forward(self, x):
-        # x: (B, T, D) → (B, D, T)
-        x = x.transpose(1, 2)
+        x = x.transpose(1, 2)  # (B, T, D) → (B, D, T)
         x = self.temporal(x)
         x = x.squeeze(-1)
         return self.classifier(x)
+
+
+# -------------------------------
+# Temporal Occlusion
+# -------------------------------
+def temporal_occlusion_curve(model, embeddings, window):
+    model.eval()
+    T = embeddings.shape[0]
+    mean_embedding = embeddings.mean(axis=0)
+
+    with torch.no_grad():
+        base_x = torch.tensor(embeddings, dtype=torch.float32).unsqueeze(0).to(DEVICE)
+        base_prob = torch.softmax(model(base_x), dim=1)[0, 1].item()
+
+    drops = np.zeros(T)
+    half = window // 2
+
+    for t in range(T):
+        occluded = embeddings.copy()
+        start = max(0, t - half)
+        end = min(T, t + half + 1)
+
+        occluded[start:end] = mean_embedding
+
+        with torch.no_grad():
+            x = torch.tensor(occluded, dtype=torch.float32).unsqueeze(0).to(DEVICE)
+            prob = torch.softmax(model(x), dim=1)[0, 1].item()
+
+        drops[t] = base_prob - prob
+
+    return drops, base_prob
+
+# -------------------------------
+# Plotting Utilities
+# -------------------------------
+def plot_temporal_anomaly(video_name, drops, save_dir):
+    frames = np.arange(len(drops))
+    drops_norm = drops / (np.max(drops) + 1e-8)
+
+    plt.figure(figsize=(12, 4))
+    plt.plot(frames, drops, linewidth=2)
+    plt.xlabel("Frame Index")
+    plt.ylabel("ΔP(fake)")
+    plt.title(f"Temporal Occlusion Anomaly Curve\n{video_name}")
+    plt.grid(True)
+
+    out_path = os.path.join(save_dir, f"{video_name}_temporal_occlusion.png")
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=200)
+    plt.close()
+
+    # Heatmap-style visualization
+    plt.figure(figsize=(12, 1.5))
+    plt.imshow(drops_norm[np.newaxis, :], aspect="auto", cmap="hot")
+    plt.yticks([])
+    plt.xlabel("Frame Index")
+    plt.title("Normalized Temporal Contribution Heatmap")
+    plt.colorbar(label="Relative Contribution")
+
+    heatmap_path = os.path.join(
+        save_dir, f"{video_name}_temporal_occlusion_heatmap.png"
+    )
+    plt.tight_layout()
+    plt.savefig(heatmap_path, dpi=200)
+    plt.close()
+
+    return out_path, heatmap_path
 
 
 # -------------------------------
@@ -247,8 +317,8 @@ print("✅ Embedding extraction complete!")
     
     print()
 
-    # Step 4: Load model and make predictions
-    print("🔄 Step 3/3: Making predictions...")
+    # Step 4: Load model and make predictions with temporal occlusion analysis
+    print("🔄 Step 3/3: Making predictions with temporal explainability...")
     print("-" * 60)
     
     # Load the trained model
@@ -273,7 +343,7 @@ print("✅ Embedding extraction complete!")
     print("=" * 60)
     print()
 
-    # Make predictions
+    # Make predictions with temporal occlusion analysis
     for emb_file in embedding_files:
         emb_path = os.path.join(EMBEDDINGS_FOLDER, emb_file)
         video_name = emb_file.replace(".npy", "")
@@ -293,7 +363,7 @@ print("✅ Embedding extraction complete!")
             # Convert to tensor and add batch dimension
             x = torch.tensor(embeddings, dtype=torch.float32).unsqueeze(0).to(DEVICE)
             
-            # Make prediction
+            # Make prediction on entire video
             with torch.no_grad():
                 output = model(x)
                 probabilities = torch.softmax(output, dim=1)
@@ -307,13 +377,53 @@ print("✅ Embedding extraction complete!")
             # Determine label
             label = "GENERATED/DEEPFAKE" if prediction == 1 else "REAL"
             
-            # Print results with nice formatting
+            # Print overall results with nice formatting
             print(f"📹 Video: {video_name}")
             print(f"   🎯 Prediction: {label}")
             print(f"   💯 Confidence: {confidence * 100:.2f}%")
             print(f"   📊 Probabilities:")
             print(f"      • Real: {prob_real * 100:.2f}%")
             print(f"      • Generated/Deepfake: {prob_fake * 100:.2f}%")
+            
+            # Perform temporal occlusion analysis
+            print(f"\n   🔍 Temporal Occlusion Analysis:")
+            print(f"   {'-' * 50}")
+            
+            drops, base_prob = temporal_occlusion_curve(
+                model, embeddings, OCCLUSION_WINDOW
+            )
+            
+            # Save raw occlusion curve data
+            np.save(
+                os.path.join(EMBEDDINGS_FOLDER, f"{video_name}_temporal_occlusion.npy"),
+                drops
+            )
+            
+            # Generate plots
+            curve_path, heatmap_path = plot_temporal_anomaly(
+                video_name, drops, EMBEDDINGS_FOLDER
+            )
+            
+            print(f"   📈 Plots saved:")
+            print(f"      • {curve_path}")
+            print(f"      • {heatmap_path}")
+            
+            # Show top influential frames
+            top_idx = np.argsort(drops)[::-1][:10]
+            print(f"\n   ⚠️  Top 10 Most Influential Frames (highest contribution to detection):")
+            for i, frame_num in enumerate(top_idx, 1):
+                print(f"      {i:2d}. Frame {frame_num:3d}  (ΔP = {drops[frame_num]:.4f})")
+            
+            # Show summary statistics
+            avg_drop = np.mean(drops)
+            max_drop = np.max(drops)
+            min_drop = np.min(drops)
+            
+            print(f"\n   📈 Frame Statistics:")
+            print(f"      • Average contribution: {avg_drop:.4f}")
+            print(f"      • Maximum contribution: {max_drop:.4f}")
+            print(f"      • Minimum contribution: {min_drop:.4f}")
+            print(f"      • Frames analyzed: {NUM_FRAMES}")
             print()
             
         except Exception as e:

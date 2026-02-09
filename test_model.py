@@ -10,9 +10,9 @@ import time
 # Configuration
 # -------------------------------
 TEST_FOLDER = "embeddings-test"
-MODEL_PATH = "temporal_cnn_dino.pth"
+MODEL_PATH = "temporal_cnn_dino_125.pth"
 BATCH_SIZE = 8
-NUM_FRAMES = 32
+NUM_FRAMES = 125
 EMB_DIM = 384
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 

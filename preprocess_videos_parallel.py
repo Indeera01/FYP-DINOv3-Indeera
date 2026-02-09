@@ -29,7 +29,7 @@ DEFAULT_CONFIG = {
     "frame_rate": 25,                    
     "duration": 5,                       
     "frame_sampling_strategy": "uniform", 
-    "num_sampled_frames": 32,            
+    "num_sampled_frames": 125,            
     
     # Spatial Parameters
     "frame_resolution": 224,             
@@ -112,7 +112,7 @@ def extract_frames_to_images(input_path, output_dir, config):
     else:
         flags = "bilinear"
     
-    # Calculate expected frames
+    # Calculate expected frames 
     total_frames = config["duration"] * config["frame_rate"]
     
     # Determine frame indices to sample

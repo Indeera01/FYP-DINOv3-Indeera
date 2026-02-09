@@ -13,7 +13,7 @@ VAL_FOLDER = "embeddings-validation"
 BATCH_SIZE = 8
 EPOCHS = 25
 LR = 1e-4
-NUM_FRAMES = 32
+NUM_FRAMES = 125
 EMB_DIM = 384
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -201,5 +201,5 @@ print("=" * 60)
 # -------------------------------
 # Save model
 # -------------------------------
-torch.save(model.state_dict(), "temporal_cnn_dino.pth")
-print("\n✅ Model saved as temporal_cnn_dino.pth")
+torch.save(model.state_dict(), "temporal_cnn_dino_125.pth")
+print("\n✅ Model saved as temporal_cnn_dino_125.pth")
