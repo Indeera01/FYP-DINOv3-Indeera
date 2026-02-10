@@ -8,6 +8,11 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import tempfile
 from tqdm import tqdm
+from dotenv import load_dotenv
+
+load_dotenv()
+
+TOKEN = os.getenv("HUGGINGFACE_TOKEN")
 
 # -------------------------------
 # Configuration
@@ -233,20 +238,15 @@ from PIL import Image
 from pathlib import Path
 from tqdm import tqdm
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 FRAMES_ROOT = "{PREPROCESSED_FOLDER}"
 OUTPUT_FOLDER = "{EMBEDDINGS_FOLDER}"
 MODEL_NAME = "facebook/dinov3-vits16-pretrain-lvd1689m"
 IMAGE_FORMAT = "png"
 DEVICE = "{DEVICE}"
-TOKEN = os.getenv("HUGGINGFACE_TOKEN")
 
 print("Loading DINOv3 model...")
-processor = AutoImageProcessor.from_pretrained(MODEL_NAME, token=TOKEN)
-model = AutoModel.from_pretrained(MODEL_NAME, token=TOKEN).to(DEVICE)
+processor = AutoImageProcessor.from_pretrained(MODEL_NAME, token={TOKEN})
+model = AutoModel.from_pretrained(MODEL_NAME, token={TOKEN}).to(DEVICE)
 model.eval()
 print("✅ Model loaded successfully!")
 print()
