@@ -233,15 +233,20 @@ from PIL import Image
 from pathlib import Path
 from tqdm import tqdm
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 FRAMES_ROOT = "{PREPROCESSED_FOLDER}"
 OUTPUT_FOLDER = "{EMBEDDINGS_FOLDER}"
 MODEL_NAME = "facebook/dinov3-vits16-pretrain-lvd1689m"
 IMAGE_FORMAT = "png"
 DEVICE = "{DEVICE}"
+TOKEN = os.getenv("HUGGINGFACE_TOKEN")
 
 print("Loading DINOv3 model...")
-processor = AutoImageProcessor.from_pretrained(MODEL_NAME)
-model = AutoModel.from_pretrained(MODEL_NAME).to(DEVICE)
+processor = AutoImageProcessor.from_pretrained(MODEL_NAME, token=TOKEN)
+model = AutoModel.from_pretrained(MODEL_NAME, token=TOKEN).to(DEVICE)
 model.eval()
 print("✅ Model loaded successfully!")
 print()
@@ -303,7 +308,7 @@ print("✅ Embedding extraction complete!")
         env = os.environ.copy()
         env['PYTHONIOENCODING'] = 'utf-8'
         
-        result = subprocess.run(["python", temp_script_path], capture_output=True, text=True, env=env)
+        result = subprocess.run([sys.executable, temp_script_path], capture_output=True, text=True, env=env)
         print(result.stdout)
         
         if result.returncode != 0:

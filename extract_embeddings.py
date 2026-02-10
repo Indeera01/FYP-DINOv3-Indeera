@@ -5,6 +5,9 @@ from transformers import AutoModel, AutoImageProcessor
 from PIL import Image
 from tqdm import tqdm
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # -------------------------------
 # Configuration
@@ -14,6 +17,7 @@ FRAMES_ROOT_TEMPLATE = "preprocessed_frames-{split}"  # Use {split} placeholder
 OUTPUT_FOLDER_TEMPLATE = "embeddings-{split}"  # Use {split} placeholder
 MODEL_NAME = "facebook/dinov3-vits16-pretrain-lvd1689m"
 IMAGE_FORMAT = "png"  # Must match the format in preprocess_videos.py config
+TOKEN = os.getenv("HUGGINGFACE_TOKEN")
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -31,8 +35,8 @@ print()
 # Load model
 # -------------------------------
 print("Loading DINOv3 model...")
-processor = AutoImageProcessor.from_pretrained(MODEL_NAME)
-model = AutoModel.from_pretrained(MODEL_NAME).to(DEVICE)
+processor = AutoImageProcessor.from_pretrained(MODEL_NAME, token=TOKEN)
+model = AutoModel.from_pretrained(MODEL_NAME, token=TOKEN).to(DEVICE)
 model.eval()
 
 

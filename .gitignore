@@ -6,3 +6,9 @@ embeddings-validation/
 preprocessed_frames-test/
 preprocessed_frames-train/
 preprocessed_frames-validation/
+
+#venv
+appearance
+
+.vscode
+.env
