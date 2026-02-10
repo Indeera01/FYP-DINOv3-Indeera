@@ -245,8 +245,8 @@ IMAGE_FORMAT = "png"
 DEVICE = "{DEVICE}"
 
 print("Loading DINOv3 model...")
-processor = AutoImageProcessor.from_pretrained(MODEL_NAME, token={TOKEN})
-model = AutoModel.from_pretrained(MODEL_NAME, token={TOKEN}).to(DEVICE)
+processor = AutoImageProcessor.from_pretrained(MODEL_NAME, token="{TOKEN}")
+model = AutoModel.from_pretrained(MODEL_NAME, token="{TOKEN}").to(DEVICE)
 model.eval()
 print("✅ Model loaded successfully!")
 print()
